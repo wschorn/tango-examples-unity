@@ -692,7 +692,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 162870}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f0fe6879878e49aab22e27b32350111, type: 3}
+  m_Script: {fileID: 11500000, guid: b1ab050577b1446c5a5fc1863c7505b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_tangoServiceVersionName: 
