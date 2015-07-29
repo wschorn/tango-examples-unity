@@ -9,6 +9,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using Tango;
+using System.Collections.Generic;
 
 /// <summary>
 /// Point cloud visualize using depth frame API.
@@ -72,6 +73,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
     private bool m_isExtrinsicQuerable = false;
 
     private Renderer m_renderer;
+	private System.Random m_rand;
     
     /// <summary>
     /// Use this for initialization.
@@ -93,6 +95,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
         m_mesh.Clear();
 
         m_renderer = GetComponent<Renderer>();
+		m_rand = new System.Random ();
     }
     
     /// <summary>
@@ -222,6 +225,133 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
         
         return bestIndex;
     }
+
+	/// <summary>
+	/// Finds all points within a certain radius of a point on the screen.
+	/// 
+	/// NOTE: This is slow because it looks at every single point in the point cloud.  Avoid
+	/// calling this more than once a frame.
+	/// </summary>
+	/// <returns>A list of point indices for points within the radius.</returns>
+	/// <param name="cam">The current camera.</param>
+	/// <param name="pos">Position on screen (in pixels).</param>
+	/// <param name="maxDist">The maximum pixel distance to allow.</param>
+	public List<int> FindPointsWithinDistance(Camera cam, Vector2 pos, float maxDist)
+	{
+		List<int> closePoints = new List<int> ();
+		float sqMaxDist = maxDist * maxDist;
+		
+		for (int it = 0; it < m_pointsCount; ++it)
+		{
+			Vector3 screenPos3 = cam.WorldToScreenPoint(m_points[it]);
+			Vector2 screenPos = new Vector2(screenPos3.x, screenPos3.y);
+			
+			float distSqr = Vector2.SqrMagnitude(screenPos - pos);
+			if (distSqr > sqMaxDist)
+			{
+				continue;
+			}
+			closePoints.Add(it);
+		}
+		
+		return closePoints;
+	}
+
+	/// <summary>
+	/// Finds the average point from a set of point indices.
+	/// </summary>
+	/// <returns>The average point value.</returns>
+	/// <param name="points">The points to compute the average for.</param>
+	public Vector3 getAverageFromFilteredPoints(List<int> points) {
+		Vector3 averagePoint = new Vector3 (0, 0, 0);
+
+		for (int i = 0; i < points.Count; i++) {
+			averagePoint += m_points[points[i]];
+		}
+
+		averagePoint /= points.Count;
+		
+		return averagePoint;
+	}
+
+	/// <summary>
+	/// Given a set of points find the best fit plane.
+    /// TODO(@eitanm): refine with SVD after this.
+	/// </summary>
+	/// <returns>True if the plane fit succeeds, false otherwise.</returns>
+	/// <param name="points">The points to compute the normal for.</param>
+	public bool getPlaneUsingRANSAC(List<int> points, double minPercentage,
+	                                  out List<int> inliers, out Plane plane) {
+		// Max number of iterations
+		int maxIterations = 50;
+		// Threshold to define if a point belongs to a plane or not
+		// Distance in meters from point to plane
+		double threshold = 0.02;
+		
+		int maxFittedPoints = 0;
+		double percentageFitted = 0;
+		inliers = new List<int>();
+		plane = new Plane ();
+
+		// RANSAC algorithm to determine inliers
+		for (int i = 0; i < maxIterations; i++) {
+			List<int> candidateInliers = new List<int> ();
+			
+			Plane candidatePlane = makeRandomPlane(points);
+
+			// See for every point if it belongs to that Plane or not
+			for (int j = 0; j < points.Count; j++) {
+				float distToPlane = candidatePlane.GetDistanceToPoint(m_points[points[j]]);
+				if (distToPlane < threshold) {
+					candidateInliers.Add (points[j]);
+				}
+			}
+			if (candidateInliers.Count > maxFittedPoints) {
+				maxFittedPoints = candidateInliers.Count;
+				inliers = candidateInliers;
+				plane = candidatePlane;
+			}
+			
+			percentageFitted = maxFittedPoints / points.Count;
+			if (percentageFitted > minPercentage) {
+				break;
+			}
+		}
+		// If we couldn't reach the minimum points to be fitted with RANSAC, return false
+		if (percentageFitted < minPercentage) {
+			return false;
+		}
+		return true;
+	}
+
+	/// <summary>
+	/// Create a plane from a list of points at random.
+	/// </summary>
+	/// <returns>A random plane.</returns>
+	/// <param name="points">The points to compute the plane for.</param>
+	private Plane makeRandomPlane(List<int> points) {
+		// Choose 3 points randomly
+		int r0 = points[m_rand.Next(points.Count)];
+		int r1 = points[m_rand.Next(points.Count)];
+		int r2 = points[m_rand.Next(points.Count)];
+
+		// TODO:(@eitanm) Perhaps remove points from the set instead of doing this while loop.
+		// In a very unlucky world this could loop forever though it won't. This is kind of
+		// hacky for now.
+		while (r0 == r1 || r0 == r2 || r1 == r2) {
+			r0 = points[m_rand.Next(points.Count)];
+			r1 = points[m_rand.Next(points.Count)];
+			r2 = points[m_rand.Next(points.Count)];
+		}
+		
+		Vector3 p0 = m_points[r0];
+		Vector3 p1 = m_points[r1];
+		Vector3 p2 = m_points[r2];
+		
+		// Define the plane
+		return new Plane(p0, p1, p2);
+	}
+
 
     /// <summary>
     /// Sets up extrinsic matrixces for this hardware.

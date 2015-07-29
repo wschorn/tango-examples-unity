@@ -6,6 +6,7 @@
 // </copyright>
 //-----------------------------------------------------------------------
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Tango;
 
@@ -48,6 +49,7 @@ public class AugmentedRealityGUIController : MonoBehaviour
     /// How big (in pixels) is a tap?
     /// </summary>
     public const int TAP_PIXEL_TOLERANCE = 40;
+	public const double MIN_PLANE_FIT_PERCENTAGE = 0.8;
 
     public ARScreen m_arScreen;
 
@@ -281,23 +283,20 @@ public class AugmentedRealityGUIController : MonoBehaviour
         }
 
         Camera cam = m_arScreen.m_renderCamera;
-        int closestIndex = m_pointCloud.FindClosestPoint(cam, t.position, TAP_PIXEL_TOLERANCE);
-        if (closestIndex < 0)
-        {
-            return;
-        }
+		// Find the closest points to the selected point.
+        List<int> closestPoints = m_pointCloud.FindPointsWithinDistance(cam, t.position, TAP_PIXEL_TOLERANCE);
+		Vector3 planeCenter = m_pointCloud.getAverageFromFilteredPoints (closestPoints);
+		Plane plane;
+		List<int> inliers;
+		if (!m_pointCloud.getPlaneUsingRANSAC (closestPoints, MIN_PLANE_FIT_PERCENTAGE, out inliers, out plane)) {
+			return;
+		}
 
         if (m_placedLocation)
         {
             m_placedLocation.SendMessage("Hide");
         }
 
-        float closestDepth = cam.WorldToScreenPoint(m_pointCloud.m_points[closestIndex]).z;
-        Ray touchRay = cam.ScreenPointToRay(new Vector3(t.position[0], t.position[1], 0));
-        Vector3 pos = touchRay.origin + (touchRay.direction * closestDepth);
-                
-        Vector3 rot = cam.transform.eulerAngles;
-        rot[0] = rot[2] = 0;
-        m_placedLocation = (GameObject)Instantiate(m_prefabLocation, pos, Quaternion.Euler(rot));
+        m_placedLocation = (GameObject)Instantiate(m_prefabLocation, planeCenter, Quaternion.LookRotation(plane.normal));
     }
 }
