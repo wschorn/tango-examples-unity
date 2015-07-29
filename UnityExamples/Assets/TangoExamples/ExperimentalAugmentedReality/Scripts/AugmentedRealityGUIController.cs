@@ -48,8 +48,8 @@ public class AugmentedRealityGUIController : MonoBehaviour
     /// <summary>
     /// How big (in pixels) is a tap?
     /// </summary>
-    public const int TAP_PIXEL_TOLERANCE = 40;
-	public const double MIN_PLANE_FIT_PERCENTAGE = 0.8;
+    public const float TAP_PIXEL_TOLERANCE = 40;
+	public const float MIN_PLANE_FIT_PERCENTAGE = 0.8f;
 
     public ARScreen m_arScreen;
 
@@ -283,12 +283,12 @@ public class AugmentedRealityGUIController : MonoBehaviour
         }
 
         Camera cam = m_arScreen.m_renderCamera;
-		// Find the closest points to the selected point.
-        List<int> closestPoints = m_pointCloud.FindPointsWithinDistance(cam, t.position, TAP_PIXEL_TOLERANCE);
-		Vector3 planeCenter = m_pointCloud.getAverageFromFilteredPoints (closestPoints);
+		// Find the plane for the selected point.
+		Vector3 planeCenter;
 		Plane plane;
-		List<int> inliers;
-		if (!m_pointCloud.getPlaneUsingRANSAC (closestPoints, MIN_PLANE_FIT_PERCENTAGE, out inliers, out plane)) {
+		if (!m_pointCloud.FindPlane (cam, t.position,
+		                             TAP_PIXEL_TOLERANCE, MIN_PLANE_FIT_PERCENTAGE,
+		                             out planeCenter, out plane)) {
 			return;
 		}
 
@@ -297,6 +297,6 @@ public class AugmentedRealityGUIController : MonoBehaviour
             m_placedLocation.SendMessage("Hide");
         }
 
-        m_placedLocation = (GameObject)Instantiate(m_prefabLocation, planeCenter, Quaternion.LookRotation(plane.normal));
+        m_placedLocation = (GameObject)Instantiate(m_prefabLocation, planeCenter, Quaternion.FromToRotation(Vector3.up, plane.normal));
     }
 }

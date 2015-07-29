@@ -262,7 +262,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 	/// </summary>
 	/// <returns>The average point value.</returns>
 	/// <param name="points">The points to compute the average for.</param>
-	public Vector3 getAverageFromFilteredPoints(List<int> points) {
+	public Vector3 GetAverageFromFilteredPoints(List<int> points) {
 		Vector3 averagePoint = new Vector3 (0, 0, 0);
 
 		for (int i = 0; i < points.Count; i++) {
@@ -274,13 +274,26 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 		return averagePoint;
 	}
 
+	public bool FindPlane(Camera cam, Vector2 pos,
+	                      float maxPixelDist, float minInlierPercentage,
+	                      out Vector3 planeCenter, out Plane plane) {
+		List<int> closestPoints = FindPointsWithinDistance(cam, pos, maxPixelDist);
+		planeCenter = GetAverageFromFilteredPoints (closestPoints);
+		List<int> inliers;
+		if (!GetPlaneUsingRANSAC (cam, closestPoints, minInlierPercentage, out inliers, out plane)) {
+			return false;
+		}
+		return true;
+	}
+
 	/// <summary>
 	/// Given a set of points find the best fit plane.
     /// TODO(@eitanm): refine with SVD after this.
 	/// </summary>
 	/// <returns>True if the plane fit succeeds, false otherwise.</returns>
+	/// <param name="cam">The unity camera.</param>
 	/// <param name="points">The points to compute the normal for.</param>
-	public bool getPlaneUsingRANSAC(List<int> points, double minPercentage,
+	public bool GetPlaneUsingRANSAC(Camera cam, List<int> points, double minPercentage,
 	                                  out List<int> inliers, out Plane plane) {
 		// Max number of iterations
 		int maxIterations = 50;
@@ -297,7 +310,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 		for (int i = 0; i < maxIterations; i++) {
 			List<int> candidateInliers = new List<int> ();
 			
-			Plane candidatePlane = makeRandomPlane(points);
+			Plane candidatePlane = MakeRandomPlane(cam, points);
 
 			// See for every point if it belongs to that Plane or not
 			for (int j = 0; j < points.Count; j++) {
@@ -329,7 +342,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 	/// </summary>
 	/// <returns>A random plane.</returns>
 	/// <param name="points">The points to compute the plane for.</param>
-	private Plane makeRandomPlane(List<int> points) {
+	private Plane MakeRandomPlane(Camera cam, List<int> points) {
 		// Choose 3 points randomly
 		int r0 = points[m_rand.Next(points.Count)];
 		int r1 = points[m_rand.Next(points.Count)];
@@ -349,7 +362,12 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 		Vector3 p2 = m_points[r2];
 		
 		// Define the plane
-		return new Plane(p0, p1, p2);
+		Plane plane = new Plane(p0, p1, p2);
+		// Make sure that the normal of the plane points towards the camera.
+		if (Vector3.Dot (cam.transform.forward, plane.normal) > 0) {
+			plane.SetNormalAndPosition(plane.normal * -1.0f, p0);
+		}
+		return plane;
 	}
 
 
