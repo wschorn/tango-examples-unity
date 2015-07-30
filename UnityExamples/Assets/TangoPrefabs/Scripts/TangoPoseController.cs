@@ -50,6 +50,8 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
     private Matrix4x4 m_matrixuwTss;
     private Matrix4x4 m_matrixdTuc;
 
+	private Matrix4x4 m_o1To0;
+
     // Flag for initilizing Tango.
     private bool m_shouldInitTango = false;
 
@@ -100,7 +102,7 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
                 Matrix4x4 matrixssTd = Matrix4x4.TRS(m_tangoPosition, m_tangoRotation, Vector3.one);
                 
                 // Converting from Tango coordinate frame to Unity coodinate frame.
-                Matrix4x4 matrixuwTuc = m_matrixuwTss * matrixssTd * m_matrixdTuc;
+				Matrix4x4 matrixuwTuc = m_o1To0 * m_matrixuwTss * matrixssTd * m_matrixdTuc;
                 
                 // Extract new local position
                 transform.position = matrixuwTuc.GetColumn(3);
@@ -142,6 +144,8 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
         m_status = TangoEnums.TangoPoseStatusType.NA;
         m_tangoRotation = Quaternion.identity;
         m_tangoPosition = Vector3.zero;
+
+		m_o1To0 = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
     }
 
     /// <summary>
