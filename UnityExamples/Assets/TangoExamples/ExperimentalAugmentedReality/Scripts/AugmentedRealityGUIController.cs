@@ -46,10 +46,14 @@ public class AugmentedRealityGUIController : MonoBehaviour
     public const float SECOND_TO_MILLISECOND = 1000.0f;
 
     /// <summary>
-    /// How big (in pixels) is a tap?
+    /// How big (in pixels) is a tap.
     /// </summary>
     public const float TAP_PIXEL_TOLERANCE = 40;
-	public const float MIN_PLANE_FIT_PERCENTAGE = 0.8f;
+
+    /// <summary>
+    /// Minimum inlier percentage to consider a plane a fit.
+    /// </summary>
+    public const float MIN_PLANE_FIT_PERCENTAGE = 0.8f;
 
     public ARScreen m_arScreen;
 
@@ -283,14 +287,16 @@ public class AugmentedRealityGUIController : MonoBehaviour
         }
 
         Camera cam = m_arScreen.m_renderCamera;
-		// Find the plane for the selected point.
-		Vector3 planeCenter;
-		Plane plane;
-		if (!m_pointCloud.FindPlane (cam, t.position,
-		                             TAP_PIXEL_TOLERANCE, MIN_PLANE_FIT_PERCENTAGE,
-		                             out planeCenter, out plane)) {
-			return;
-		}
+
+        // Find the plane for the selected point.
+        Vector3 planeCenter;
+        Plane plane;
+        if (!m_pointCloud.FindPlane(cam, t.position,
+                                    TAP_PIXEL_TOLERANCE, MIN_PLANE_FIT_PERCENTAGE,
+                                    out planeCenter, out plane))
+        {
+            return;
+        }
 
         if (m_placedLocation)
         {
