@@ -295,6 +295,13 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 	/// <param name="points">The points to compute the normal for.</param>
 	public bool GetPlaneUsingRANSAC(Camera cam, List<int> points, double minPercentage,
 	                                  out List<int> inliers, out Plane plane) {
+		inliers = new List<int>();
+		plane = new Plane ();
+
+		if (points.Count < 3) {
+			return false;
+		}
+
 		// Max number of iterations
 		int maxIterations = 50;
 		// Threshold to define if a point belongs to a plane or not
@@ -303,8 +310,6 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 		
 		int maxFittedPoints = 0;
 		double percentageFitted = 0;
-		inliers = new List<int>();
-		plane = new Plane ();
 
 		// RANSAC algorithm to determine inliers
 		for (int i = 0; i < maxIterations; i++) {
@@ -343,23 +348,26 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
 	/// <returns>A random plane.</returns>
 	/// <param name="points">The points to compute the plane for.</param>
 	private Plane MakeRandomPlane(Camera cam, List<int> points) {
-		// Choose 3 points randomly
-		int r0 = points[m_rand.Next(points.Count)];
-		int r1 = points[m_rand.Next(points.Count)];
-		int r2 = points[m_rand.Next(points.Count)];
+		if (points.Count < 3)
+			return new Plane ();
 
-		// TODO:(@eitanm) Perhaps remove points from the set instead of doing this while loop.
-		// In a very unlucky world this could loop forever though it won't. This is kind of
-		// hacky for now.
-		while (r0 == r1 || r0 == r2 || r1 == r2) {
-			r0 = points[m_rand.Next(points.Count)];
-			r1 = points[m_rand.Next(points.Count)];
-			r2 = points[m_rand.Next(points.Count)];
-		}
+		List<int> selected_points = points.ConvertAll (point => point);
+		// Choose 3 points randomly
+		int r0 = m_rand.Next (selected_points.Count);
+		int idx0 = selected_points [r0];
+		selected_points.RemoveAt (r0);
+
+		int r1 = m_rand.Next (selected_points.Count);
+		int idx1 = selected_points [r1];
+		selected_points.RemoveAt (r1);
+
+		int r2 = m_rand.Next (selected_points.Count);
+		int idx2 = selected_points [r2];
+		selected_points.RemoveAt (r2);
 		
-		Vector3 p0 = m_points[r0];
-		Vector3 p1 = m_points[r1];
-		Vector3 p2 = m_points[r2];
+		Vector3 p0 = m_points[idx0];
+		Vector3 p1 = m_points[idx1];
+		Vector3 p2 = m_points[idx2];
 		
 		// Define the plane
 		Plane plane = new Plane(p0, p1, p2);
