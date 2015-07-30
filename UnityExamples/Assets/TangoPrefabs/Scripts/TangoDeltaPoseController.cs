@@ -56,8 +56,28 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
     private Matrix4x4 m_matrixuwTss;
     private Matrix4x4 m_matrixdTuc;
 
+    // A copy of the most recent pose matrix we get from Tango.
+    // Needed to calculate offsets.
+    private Matrix4x4 m_ssTd;
+
+    // The current offset matrix, used to calculate final positions.
+    private Matrix4x4 m_offsetMatrix;
+
     // Flag for initilizing Tango.
     private bool m_shouldInitTango = false;
+
+    // Change the Tango Pose location
+    public void SetNextResult(Vector3 pos, Quaternion quat)
+    {
+        Vector4 lastPos4 = (m_matrixuwTss * m_ssTd).GetColumn (3);
+		Vector3 lastPos = new Vector3 (lastPos4.x, lastPos4.y, lastPos4.z);
+        m_offsetMatrix = Matrix4x4.TRS(pos - lastPos, Quaternion.identity, Vector3.one);
+
+        m_prevTangoPosition = m_tangoPosition = pos;
+        m_prevTangoRotation = m_tangoRotation = quat;
+        m_characterController.transform.position = pos;
+        m_characterController.transform.rotation = quat;
+    }
 
     /// <summary>
     /// Handle the callback sent by the Tango Service
@@ -108,9 +128,10 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
 
                 // Construct the start of service with respect to device matrix from the pose.
                 Matrix4x4 matrixssTd = Matrix4x4.TRS(m_tangoPosition, m_tangoRotation, Vector3.one);
-                
+                m_ssTd = matrixssTd;
+
                 // Converting from Tango coordinate frame to Unity coodinate frame.
-                Matrix4x4 matrixuwTuc = m_matrixuwTss * matrixssTd * m_matrixdTuc;
+                Matrix4x4 matrixuwTuc = m_offsetMatrix * m_matrixuwTss * matrixssTd * m_matrixdTuc;
                 
                 // Extract new local position
                 m_tangoPosition = matrixuwTuc.GetColumn(3);
@@ -153,6 +174,8 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
         m_status = TangoEnums.TangoPoseStatusType.NA;
         m_tangoRotation = Quaternion.identity;
         m_tangoPosition = Vector3.zero;
+
+        m_offsetMatrix = Matrix4x4.identity;
     }
 
     /// <summary>

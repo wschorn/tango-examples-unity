@@ -50,7 +50,7 @@ public class MotionTrackingGUIController : MonoBehaviour {
     public const string UX_TARGET_TO_BASE_FRAME = "Target->{0}, Base->{1}:";
     public const string UX_STATUS = "\tstatus: {0}, count: {1}, position (m): [{2}], orientation: [{3}]";
     public const float SECOND_TO_MILLISECOND = 1000.0f;
-    public TangoPoseController m_tangoPoseController;
+    public TangoDeltaPoseController m_tangoPoseController;
 
     private const float m_updateFrequency = 1.0f;
     private string m_FPSText;
@@ -227,7 +227,26 @@ public class MotionTrackingGUIController : MonoBehaviour {
                                                                          _GetLoggingStringFromPoseStatus(m_tangoPoseController.m_status),
                                                                          _GetLoggingStringFromFrameCount(m_tangoPoseController.m_frameCount),
                                                                          _GetLoggingStringFromVec3(m_tangoPoseController.transform.position),
-                                                                         _GetLoggingStringFromQuaternion(m_tangoPoseController.transform.rotation)) + "</size>");            
+                                                                         _GetLoggingStringFromQuaternion(m_tangoPoseController.transform.rotation)) + "</size>");
+
+            GameObject spawnTarget = null;
+            if (GUI.Button(new Rect(100, 100, 100, 100), "Spawn 1"))
+            {
+                spawnTarget = GameObject.Find("Spawn 1");
+            }
+            if (GUI.Button(new Rect(210, 100, 100, 100), "Spawn 2"))
+            {
+                spawnTarget = GameObject.Find("Spawn 2");
+            }
+            if (GUI.Button(new Rect(320, 100, 100, 100), "Spawn 3"))
+            {
+                spawnTarget = GameObject.Find("Spawn 3");
+            }
+            if (spawnTarget != null)
+            {
+                TangoDeltaPoseController pose = GameObject.FindObjectOfType<TangoDeltaPoseController>();
+                pose.SetNextResult(spawnTarget.transform.position, spawnTarget.transform.rotation);
+            }
             GUI.color = oldColor;
         }
     }
