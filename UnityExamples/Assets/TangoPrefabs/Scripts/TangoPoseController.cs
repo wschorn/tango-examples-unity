@@ -50,9 +50,9 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
     private Matrix4x4 m_matrixuwTss;
     private Matrix4x4 m_matrixdTuc;
 
-	private Matrix4x4 m_o1To0;
-
-    // Flag for initilizing Tango.
+	private Matrix4x4 m_o2To1;
+	
+	// Flag for initilizing Tango.
     private bool m_shouldInitTango = false;
 
     /// <summary>
@@ -102,7 +102,7 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
                 Matrix4x4 matrixssTd = Matrix4x4.TRS(m_tangoPosition, m_tangoRotation, Vector3.one);
                 
                 // Converting from Tango coordinate frame to Unity coodinate frame.
-				Matrix4x4 matrixuwTuc = m_o1To0 * m_matrixuwTss * matrixssTd * m_matrixdTuc;
+				Matrix4x4 matrixuwTuc = m_o2To1 * m_matrixuwTss * matrixssTd * m_matrixdTuc;
                 
                 // Extract new local position
                 transform.position = matrixuwTuc.GetColumn(3);
@@ -145,8 +145,17 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
         m_tangoRotation = Quaternion.identity;
         m_tangoPosition = Vector3.zero;
 
-		m_o1To0 = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
+		SetOrigin(transform.position, transform.rotation);
     }
+
+	public void SetOrigin(Vector3 pos, Quaternion quat) {
+		m_o2To1 = Matrix4x4.TRS(pos, quat, Vector3.one);
+		// Only keep rotation on Y axis.
+		m_o2To1[0,1] = 0.0f;
+		m_o2To1[1,0] = 0.0f;
+		m_o2To1[1,2] = 0.0f;
+		m_o2To1[2,1] = 0.0f;
+	}
 
     /// <summary>
     /// Start this instance.
@@ -246,4 +255,12 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
             AndroidHelper.ShowAndroidToastMessage("Motion Tracking Permissions Needed", true);
         }
     }
+
+	private void OnGUI()
+	{
+		if (GUI.Button(new Rect(0, 0, 200, 200), "Reset")) {
+			SetOrigin(transform.position, transform.rotation);
+		}
+	}
 }
+		
