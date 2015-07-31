@@ -27,6 +27,10 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
     [HideInInspector]
     public TangoEnums.TangoPoseStatusType m_status;
 
+
+	public GameObject obj1;
+	public GameObject obj2;
+
     private TangoApplication m_tangoApplication;
     private float m_prevFrameTimestamp;
 
@@ -50,7 +54,9 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
     private Matrix4x4 m_matrixuwTss;
     private Matrix4x4 m_matrixdTuc;
 
-	private Matrix4x4 m_o2To1;
+	private Matrix4x4 m_nuwTuw;
+
+	private Matrix4x4 m_uwTuc;
 	
 	// Flag for initilizing Tango.
     private bool m_shouldInitTango = false;
@@ -101,14 +107,18 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
                 // Construct the start of service with respect to device matrix from the pose.
                 Matrix4x4 matrixssTd = Matrix4x4.TRS(m_tangoPosition, m_tangoRotation, Vector3.one);
                 
+				m_uwTuc = m_matrixuwTss * matrixssTd * m_matrixdTuc;
+
                 // Converting from Tango coordinate frame to Unity coodinate frame.
-				Matrix4x4 matrixuwTuc = m_o2To1 * m_matrixuwTss * matrixssTd * m_matrixdTuc;
+				Matrix4x4 matrixuwTnuc = m_nuwTuw * m_uwTuc;
                 
+
+
                 // Extract new local position
-                transform.position = matrixuwTuc.GetColumn(3);
+				transform.position = matrixuwTnuc.GetColumn(3);
                 
                 // Extract new local rotation
-                transform.rotation = Quaternion.LookRotation(matrixuwTuc.GetColumn(2), matrixuwTuc.GetColumn(1));
+				transform.rotation = Quaternion.LookRotation(matrixuwTnuc.GetColumn(2), matrixuwTnuc.GetColumn(1));
             }
             else
             {
@@ -144,21 +154,23 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
         m_status = TangoEnums.TangoPoseStatusType.NA;
         m_tangoRotation = Quaternion.identity;
         m_tangoPosition = Vector3.zero;
-
-		SetOrigin(transform.position, transform.rotation);
+		m_nuwTuw = Matrix4x4.identity;
     }
 
 	public void SetOrigin(Vector3 pos, Quaternion quat) {
-		m_o2To1 = Matrix4x4.TRS(pos, quat, Vector3.one);
-		// Only keep rotation on Y axis.
-		m_o2To1[0,1] = 0.0f;
-		m_o2To1[1,0] = 0.0f;
-		m_o2To1[1,2] = 0.0f;
-		m_o2To1[2,1] = 0.0f;
-	}
+		Matrix4x4 nuwTuc = Matrix4x4.TRS(pos, quat, Vector3.one);
+		m_nuwTuw = nuwTuc * m_uwTuc.inverse;
 
-    /// <summary>
-    /// Start this instance.
+		Vector3 nuwPuw = m_nuwTuw.GetColumn(3);
+		Quaternion nuwQuw = Quaternion.LookRotation(m_nuwTuw.GetColumn(2), m_nuwTuw.GetColumn(1));
+		Vector3 nuwEuleruw = nuwQuw.eulerAngles;
+		nuwEuleruw.x = 0.0f;
+		nuwEuleruw.z = 0.0f;
+		m_nuwTuw = Matrix4x4.TRS(nuwPuw, /*Quaternion.Euler(nuwEuleruw)*/ Quaternion.identity, Vector3.one);
+	}
+	
+	/// <summary>
+	/// Start this instance.
     /// </summary>
     private void Start()
     {
@@ -259,7 +271,10 @@ public class TangoPoseController : MonoBehaviour, ITangoPose
 	private void OnGUI()
 	{
 		if (GUI.Button(new Rect(0, 0, 200, 200), "Reset")) {
-			SetOrigin(transform.position, transform.rotation);
+			SetOrigin(obj1.transform.position, obj1.transform.rotation);
+		}
+		if (GUI.Button(new Rect(0, 200, 200, 200), "Reset1")) {
+			SetOrigin(obj2.transform.position, obj2.transform.rotation);
 		}
 	}
 }
