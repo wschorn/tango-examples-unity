@@ -40,6 +40,25 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
     private Quaternion m_tangoRotation;
     private Vector3 m_tangoPosition;
 
+    // The clutch, to prevent motion / rotation
+    private bool m_clutchActive;
+
+    public bool ClutchActive
+    {
+        get
+        {
+            return m_clutchActive;
+        }
+        set
+        {
+            if (m_clutchActive && !value)
+            {
+                SetPose(transform.position, transform.rotation);
+            }
+            m_clutchActive = value;
+        }
+    }
+
     // We use couple of matrix transformation to convert the pose from Tango coordinate
     // frame to Unity coordinate frame.
     // The full equation is:
@@ -148,8 +167,22 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
                 // if the current pose is not valid we do nothing
             }
 
-            m_characterController.Move(m_tangoPosition - m_prevTangoPosition);
-            transform.rotation = m_tangoRotation;
+            if (m_clutchActive)
+            {
+                // preserve position
+                m_tangoPosition = m_prevTangoPosition;
+
+                // preserve the yaw, keep changes in pitch, roll
+                Vector3 rotationAngles = m_tangoRotation.eulerAngles;
+                rotationAngles.y = m_prevTangoRotation.eulerAngles.y;
+                m_tangoRotation.eulerAngles = rotationAngles;
+            }
+
+            // Calculate deltas and apply
+            Vector3 deltaPosition = m_tangoPosition - m_prevTangoPosition;
+            Quaternion deltaRotation = m_tangoRotation * Quaternion.Inverse(m_prevTangoRotation);
+            m_characterController.Move(deltaPosition);
+            transform.rotation = deltaRotation * transform.rotation;
         }
     }
     
@@ -176,8 +209,8 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
         m_prevFrameTimestamp = -1.0f;
         m_frameCount = -1;
         m_status = TangoEnums.TangoPoseStatusType.NA;
-        m_tangoRotation = Quaternion.identity;
-        m_tangoPosition = Vector3.zero;
+        m_prevTangoRotation = m_tangoRotation = Quaternion.identity;
+        m_prevTangoPosition = m_tangoPosition = Vector3.zero;
 
         m_uwTuc = Matrix4x4.identity;
         m_uwOffsetTuw = Matrix4x4.identity;
@@ -280,6 +313,16 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
         else
         {
             AndroidHelper.ShowAndroidToastMessage("Motion Tracking Permissions Needed", true);
+        }
+    }
+
+    void OnGUI()
+    {
+        // OnGUI is called multiple times per frame.  Make sure to only care about the last one.
+        bool buttonState = GUI.RepeatButton(new Rect(10, 500, 200, 200), "<size=40>CLUTCH</size>");
+        if (Event.current.type == EventType.Repaint)
+        {
+            ClutchActive = buttonState;
         }
     }
 }
