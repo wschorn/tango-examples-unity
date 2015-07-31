@@ -69,7 +69,7 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
     // Change the Tango Pose location
     public void SetNextResult(Vector3 pos, Quaternion quat)
     {
-		Matrix4x4 lastTransform = m_matrixuwTss * m_ssTd;
+		Matrix4x4 lastTransform = m_matrixuwTss * m_ssTd * m_matrixdTuc;
 		Quaternion lastTransformRot = Quaternion.LookRotation(lastTransform.GetColumn(2), lastTransform.GetColumn(1));
 		Vector3 quatAngles = quat.eulerAngles;
 		quatAngles.x = lastTransformRot.eulerAngles.x;
