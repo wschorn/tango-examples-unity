@@ -180,6 +180,7 @@ public class TangoDeltaPoseController : MonoBehaviour, ITangoPose
         m_tangoPosition = Vector3.zero;
 
         m_uwTuc = Matrix4x4.identity;
+        m_uwOffsetTuw = Matrix4x4.identity;
     }
 
     /// <summary>
