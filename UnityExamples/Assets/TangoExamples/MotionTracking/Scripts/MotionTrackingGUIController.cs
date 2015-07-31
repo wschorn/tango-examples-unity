@@ -245,7 +245,7 @@ public class MotionTrackingGUIController : MonoBehaviour {
             if (spawnTarget != null)
             {
                 TangoDeltaPoseController pose = GameObject.FindObjectOfType<TangoDeltaPoseController>();
-                pose.SetNextResult(spawnTarget.transform.position, spawnTarget.transform.rotation);
+                pose.SetPose(spawnTarget.transform.position, spawnTarget.transform.rotation);
             }
             GUI.color = oldColor;
         }
