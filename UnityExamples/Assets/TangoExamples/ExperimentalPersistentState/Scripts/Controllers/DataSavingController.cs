@@ -24,6 +24,8 @@ public class DataSavingController : MonoBehaviour {
                 FileParser.SaveBuildingDataToPath(BuildingManager.instance.buildingList, path);
                 EventManager.instance.GameDataSaved(true);
                 startedSaving = false;
+                Debug.Log ("evidence planted!");
+                // Application.LoadLevel (0);
             }
         }
     }
