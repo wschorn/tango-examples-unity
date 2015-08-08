@@ -38,7 +38,8 @@ public class SaveGameButton : TouchableObject {
 
     protected override void TouchUp() {
         content.gameObject.transform.localScale = untouchedScaleSize;
-        DataSavingController.SaveData ();
+        Debug.Log ("evidence planted!");
+        Application.LoadLevel (0);
     }
 
     protected override void Update() {
