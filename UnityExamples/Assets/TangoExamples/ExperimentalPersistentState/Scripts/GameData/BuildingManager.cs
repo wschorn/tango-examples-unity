@@ -97,14 +97,7 @@ public class BuildingManager : MonoBehaviour {
                     curBuldingObject.buildingObject.transform.position = new Vector3(hitPoint.x, 0.0f, hitPoint.y);
                 }
             }
-            if (!occupancyIndex[index]) {
-                // make the building red.
-                curBuldingObject.buildingObject.GetComponent<BuildingController>().SetBuildingOutfitColor(buildingCorrectColor);
-            }
-            else {
-                // make building green.
-                curBuldingObject.buildingObject.GetComponent<BuildingController>().SetBuildingOutfitColor(buildingErrorColor);
-            }
+           
         }
     }
 
@@ -148,7 +141,7 @@ public class BuildingManager : MonoBehaviour {
             return;
         }
         occupancyIndex [index] = true;
-        curBuldingObject.buildingObject.GetComponent<BuildingController> ().buildingOutfit.SetActive (false);
+        // curBuldingObject.buildingObject.GetComponent<BuildingController> ().buildingOutfit.SetActive (false);
         Statics.isPlacingObject = false;
         placeBuildingButton.SetActive (false);
         cancelBuildingButton.SetActive (false);
